@@ -11,7 +11,6 @@ void OpenGLRender::onCreate(sge::NativeUIWindow& win)
 	m_dc = GetDC(win._hwnd);
 	if (!m_dc)
 		printf("GetDC");
-	win.setWindowTitle("OpenGL Window");
 	
 
 	PIXELFORMATDESCRIPTOR pfd;

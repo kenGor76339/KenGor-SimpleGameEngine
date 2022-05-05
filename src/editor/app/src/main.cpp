@@ -20,14 +20,13 @@ public:
 		_mainWin.create(winDesc);
 		_mainWin.setWindowTitle("SGE Editor");
 
-		SGE_LOG("Hello {}", 10);
-		
 		_renderer.create(_mainWin);
 		PostQuitMessage(0);
 	}
 
 	void RenderFrame() { _renderer.RenderFrame(); }
 	void setCurrentRender(int i) { _renderer.setCurrentRender(i); }
+	void createMesh(int mesh) { _renderer.createMesh(mesh); }
 private:
 	MainWin		_mainWin;
 	Renderer	_renderer;
@@ -58,10 +57,16 @@ int main() {
 		else
 		{
 			// Run game code here
-			app.RenderFrame();
 			int renderMethod;
-			scanf("%d",&renderMethod);
+			int meshName;
+			printf("Your Render Method: ");
+			scanf("%i",&renderMethod);
 			app.setCurrentRender(renderMethod);
+			printf("Your Render mesh: ");
+			scanf("%i", &meshName);
+			app.createMesh(meshName);
+			app.RenderFrame();
+			printf("\n");
 		}
 	}
 

@@ -1,38 +1,32 @@
 #include "DirectX11.h"
-//#include <direct.h>
+#include "DirectX11adapter.h"
+#include "sge_render/base/Buffer.h"
 
 void DirectX11Render::onCreate(sge::NativeUIWindow& win)
 {
 	if (!win._hwnd)
 		printf("CreateWindow");
-	win.setWindowTitle("DirectX11 Window");
+
 	InitD3D(win._hwnd);
-	InitPipeline();
-	InitGraphics();
 }
 
-void DirectX11Render::onRenderFrame()
-{
-	printf("DirectX11 Rendering\n");
 
-	// clear the back buffer to a deep blue
-	float color[4] = { 0.0f, 0.2f, 0.4f, 1.0f };
-	devcon->ClearRenderTargetView(backbuffer, color);
+void DirectX11Render::onDraw(RenderCmd_Draw& cmd) {
+	printf("DirectX onDraw!\n");
 
-	// do 3D rendering on the back buffer here
+	(void)cmd;
+	auto* vertexBuffer = cmd.vertexbuffer;
+	devcon->IASetPrimitiveTopology(DirectX11adapter::getD3DPrimitive(cmd.primitivetype));
+	InitPipeline(cmd);
 
-	// select which vertex buffer to display
-	UINT stride = sizeof(VERTEX);
+	UINT stride = (UINT)cmd.stride;
 	UINT offset = 0;
+	ID3D11Buffer* pVBuffer = vertexBuffer->getD3DBuffer();
 	devcon->IASetVertexBuffers(0, 1, &pVBuffer, &stride, &offset);
 
-	// select which primtive type we are using
-	devcon->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	// draw the vertex buffer to the back buffer
-	devcon->Draw(3, 0);
-
-	// switch the back buffer and the front buffer
+	printf("vertex count %i",cmd.vertexCount);
+	devcon->Draw(cmd.vertexCount, 0);
+	
 	swapBuffers();
 }
 
@@ -98,15 +92,15 @@ void DirectX11Render::CleanD3D()
 	swapchain->SetFullscreenState(FALSE, NULL);    // switch to windowed mode
 
 // close and release all existing COM objects
-//pVS->Release();
-//pPS->Release();
+	pVS->Release();
+	pPS->Release();
 	swapchain->Release();
 	backbuffer->Release();
 	dev->Release();
 	devcon->Release();
 }
 
-void DirectX11Render::InitPipeline()
+void DirectX11Render::InitPipeline(RenderCmd_Draw cmd)
 {
 	printf("InitPipeline\n");
 	// load and compile the two shaders
@@ -124,44 +118,16 @@ void DirectX11Render::InitPipeline()
 	devcon->PSSetShader(pPS, 0, 0);
 
 	// create the input layout object
-	D3D11_INPUT_ELEMENT_DESC ied[] =
-	{
+	
+	/*{
 		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
 		{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0},
-	};
-
-	dev->CreateInputLayout(ied, 2, VS->GetBufferPointer(), VS->GetBufferSize(), &pLayout);
+	};*/
+	if (cmd.layout == nullptr || cmd.layout->element.empty()) {
+		printf("element is empty\n");
+		return;
+	}
+	D3D11_INPUT_ELEMENT_DESC* ied = DirectX11adapter::getD3DDesc(cmd.layout).data();
+	dev->CreateInputLayout(ied, cmd.layout->element.size(), VS->GetBufferPointer(), VS->GetBufferSize(), &pLayout);
 	devcon->IASetInputLayout(pLayout);
-}
-
-void DirectX11Render::InitGraphics()
-{
-	printf("InitGraphics\n");
-	// create a triangle using the VERTEX struct
-
-	VERTEX OurVertices[] =
-	{
-		{0.0f, 0.5f, 0.0f, {1.0f, 0.0f, 0.0f, 1.0f}},
-		{0.45f, -0.5, 0.0f, (0.0f, 1.0f, 0.0f, 1.0f)},
-		{-0.45f, -0.5f, 0.0f, (0.0f, 0.0f, 1.0f, 1.0f)}
-	};
-
-
-	// create the vertex buffer
-	D3D11_BUFFER_DESC bd;
-	ZeroMemory(&bd, sizeof(bd));
-
-	bd.Usage = D3D11_USAGE_DYNAMIC;                // write access access by CPU and GPU
-	bd.ByteWidth = sizeof(VERTEX) * 3;             // size is the VERTEX struct * 3
-	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;       // use as a vertex buffer
-	bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;    // allow CPU to write in buffer
-
-	dev->CreateBuffer(&bd, NULL, &pVBuffer);       // create the buffer
-
-
-	// copy the vertices into the buffer
-	D3D11_MAPPED_SUBRESOURCE ms;
-	devcon->Map(pVBuffer, NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms);    // map the buffer
-	memcpy(ms.pData, OurVertices, sizeof(OurVertices));                 // copy the data
-	devcon->Unmap(pVBuffer, NULL);                                      // unmap the buffer
 }

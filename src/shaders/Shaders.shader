@@ -15,5 +15,5 @@ vs_out VShader(vs_in input) {
 }
 
 float4 PShader(vs_out input) : SV_TARGET{
-  return float4(1.0, 0.0, 1.0, 1.0); // must return an RGBA colour
+  return input.position_clip; // must return an RGBA colour
 }
